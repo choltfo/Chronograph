@@ -130,9 +130,10 @@ void MuzzleVelocityLoop (){
 }
 
 void RateOfFireLoop() {
-  
+  // FIX ME!
 }
 
+// Goes through either individual function as the case may be.
 void loop() {
   if (state & VEL_MODE) MuzzleVelocityLoop();
   if (state & ROF_MODE) RateOfFireLoop();
