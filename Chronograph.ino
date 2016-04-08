@@ -36,7 +36,7 @@ int count = 0;
 
 // State stored as flags. See defines above.
 // Starts in Velocity recording mode.
-int state = VEL_MODE;
+int state = ROF_MODE; //VEL_MODE;
 
 
 void triggerPinA (){
@@ -51,6 +51,7 @@ void triggerPinA (){
       if (state & ROF_MODE) { 
         t2 = micros();
         count ++;
+        if (state & WAITING_) t1 = micros();
       }
   }
 }  // end of switchPressed
@@ -87,7 +88,7 @@ void MuzzleVelocityLoop (){
     t2 = 0;
 
     lcd.setCursor(0, 0);
-    lcd.print("Ready to fire....");
+    lcd.print("M/S mode");
 
     lcd.setCursor(0, 1);
     if (state & TIMEOUT_) {
@@ -130,7 +131,32 @@ void MuzzleVelocityLoop (){
 }
 
 void RateOfFireLoop() {
-  // FIX ME!
+  if (state & WAITING_) {
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("ROF mode.");
+    lcd.setCursor(0, 1);
+    lcd.print("Ready!");
+  } else {  // Not waitng - currently counting shots.
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("RPM mode.");
+    lcd.setCursor(0, 1);
+    // Number / DeltaT
+    lcd.print(60*count/((t2-t1)/1000000.0));
+    lcd.setCursor(12, 1);
+    lcd.print("RPM");
+    
+    /*if ((micros()) > 10000000 && !(state & TIMEOUT_)) {
+      state  = ROF_MODE;
+      t1 = 0;
+      t2 = 0;
+      count = 0;
+    }*/
+    
+  }
+  digitalWrite (13, LOW);
+  delay(100);
 }
 
 // Goes through either individual function as the case may be.
