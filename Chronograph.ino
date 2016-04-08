@@ -146,7 +146,8 @@ void RateOfFireLoop() {
     lcd.print(60*count/((t2-t1)/1000000.0));
     lcd.setCursor(12, 1);
     lcd.print("RPM");
-    
+
+    // Needs a manual reset instead. Like, say, a button.
     /*if ((micros()) > 10000000 && !(state & TIMEOUT_)) {
       state  = ROF_MODE;
       t1 = 0;
