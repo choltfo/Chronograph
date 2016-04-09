@@ -3,10 +3,11 @@
 #define TriggerPINA 2
 #define TriggerPINB 3
 
+#define MODE_PIN 9
+
 // We're either in Velocity (A-B) mode, or ROF (A-A-A-A...) mode
 
 #define VEL_MODE 0b00000001
-#define ROF_MODE 0b00000010
 
 // In vel mode, caught A already. Waiting for B.
 // This is where timeouts can occur.
@@ -36,7 +37,7 @@ int count = 0;
 
 // State stored as flags. See defines above.
 // Starts in Velocity recording mode.
-int state = ROF_MODE; //VEL_MODE;
+int state = VEL_MODE; //VEL_MODE;
 
 
 void triggerPinA (){
@@ -47,14 +48,20 @@ void triggerPinA (){
         state |= CAUGHT_A;  // We have, self evidently, tripped sensor A.
         state &= ~TIMEOUT_; // Reset the timeout flag, since we want to leave the screen.
         state &= ~HAS_DATA; // We can't have data from this triggering yet, there's not been a second event.
-      }
-      if (state & ROF_MODE) { 
-        t2 = micros();
-        count ++;
-        if (state & WAITING_) t1 = micros();
+      } else {
+        // ROF Mode.
+        if (state & STARTED_) {
+          t2 = micros();
+          count ++;
+        } else {
+          count = 0;
+          t1 = micros();
+          state = 0;
+          state |= STARTED_;
+        }
       }
   }
-}  // end of switchPressed
+}  // end of TriggerPinA
 
 void triggerPinB () {
   if (digitalRead (TriggerPINB) == HIGH && state & CAUGHT_A && !(state & HAS_DATA)) {
@@ -71,9 +78,11 @@ void setup() {
   // Setup pins
   pinMode (TriggerPINA, INPUT);
   pinMode (TriggerPINB, INPUT);
+  pinMode (MODE_PIN, INPUT);
   
   digitalWrite (TriggerPINA, LOW);
   digitalWrite (TriggerPINB, LOW);
+  digitalWrite (MODE_PIN, HIGH);
 
   // Configure interrupts from triggers.
   attachInterrupt (digitalPinToInterrupt(TriggerPINA), triggerPinA, RISING);
@@ -90,8 +99,10 @@ void MuzzleVelocityLoop (){
     lcd.setCursor(0, 0);
     lcd.print("M/S mode");
 
-    lcd.setCursor(0, 1);
+    
     if (state & TIMEOUT_) {
+      lcd.clear();
+      lcd.setCursor(0, 1);
       lcd.print("Timeout! Retry!");
       state = VEL_MODE; // Complete reset of state.
     }
@@ -131,19 +142,13 @@ void MuzzleVelocityLoop (){
 }
 
 void RateOfFireLoop() {
-  if (state & WAITING_) {
-    lcd.clear();
-    lcd.setCursor(0, 0);
-    lcd.print("ROF mode.");
-    lcd.setCursor(0, 1);
-    lcd.print("Ready!");
-  } else {  // Not waitng - currently counting shots.
+  if (state & STARTED_) {
     lcd.clear();
     lcd.setCursor(0, 0);
     lcd.print("RPM mode.");
     lcd.setCursor(0, 1);
     // Number / DeltaT
-    lcd.print(60*count/((t2-t1)/1000000.0));
+    lcd.print((60*count) / ((t2-t1)/1000000.0));
     lcd.setCursor(12, 1);
     lcd.print("RPM");
 
@@ -154,7 +159,13 @@ void RateOfFireLoop() {
       t2 = 0;
       count = 0;
     }*/
+  } else {  // Not waitng - currently counting shots.
     
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("ROF mode.");
+    lcd.setCursor(0, 1);
+    lcd.print("Ready!");
   }
   digitalWrite (13, LOW);
   delay(100);
@@ -163,7 +174,13 @@ void RateOfFireLoop() {
 // Goes through either individual function as the case may be.
 void loop() {
   if (state & VEL_MODE) MuzzleVelocityLoop();
-  if (state & ROF_MODE) RateOfFireLoop();
+  else RateOfFireLoop();
+
+  if (digitalRead(MODE_PIN) != (state & VEL_MODE)) {
+    state = 0;
+    state += digitalRead(MODE_PIN)*VEL_MODE;
+    lcd.clear();
+  }
 }
 
 
