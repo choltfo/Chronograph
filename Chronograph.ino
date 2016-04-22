@@ -41,7 +41,6 @@ int state = VEL_MODE; //VEL_MODE;
 
 
 void triggerPinA (){
-  if (digitalRead (TriggerPINA) == HIGH) {
       digitalWrite (13, HIGH);
       if (state & VEL_MODE) {
         t1 = micros();
@@ -60,11 +59,10 @@ void triggerPinA (){
           state |= STARTED_;
         }
       }
-  }
 }  // end of TriggerPinA
 
 void triggerPinB () {
-  if (digitalRead (TriggerPINB) == HIGH && state & CAUGHT_A && !(state & HAS_DATA)) {
+  if (state & CAUGHT_A && !(state & HAS_DATA)) {
       digitalWrite (13, HIGH);
       t2 = micros();
       state |= HAS_DATA; // Both sensors have been activated, so there must be data of SOME sort.
@@ -81,14 +79,16 @@ void setup() {
   pinMode (TriggerPINA, INPUT);
   pinMode (TriggerPINB, INPUT);
   pinMode (MODE_PIN, INPUT);
-  
-  digitalWrite (TriggerPINA, LOW);
-  digitalWrite (TriggerPINB, LOW);
+
+
+  // Leave triggers floating.
+  //digitalWrite (TriggerPINA, LOW);
+  //digitalWrite (TriggerPINB, HIGH);
   digitalWrite (MODE_PIN, HIGH);
 
   // Configure interrupts from triggers.
-  attachInterrupt (digitalPinToInterrupt(TriggerPINA), triggerPinA, RISING);
-  attachInterrupt (digitalPinToInterrupt(TriggerPINB), triggerPinB, RISING);
+  attachInterrupt (digitalPinToInterrupt(TriggerPINA), triggerPinA, FALLING);
+  attachInterrupt (digitalPinToInterrupt(TriggerPINB), triggerPinB, FALLING);
 }
 
 void MuzzleVelocityLoop (){
