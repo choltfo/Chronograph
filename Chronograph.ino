@@ -1,14 +1,21 @@
 #include <LiquidCrystal.h>
 
+///////////////////////////////////////////////////////////
+// FIX THESE PIN NUMBERS
+// https://www.arduino.cc/en/Tutorial/LiquidCrystalDisplay
+///////////////////////////////////////////////////////////
+
 #define TriggerPINA 2
 #define TriggerPINB 3
 
-#define MODE_PIN 9
+#define MODE_PIN 8
+#define UNITS_PIN 9
 
 // We're either in Velocity (A-B) mode, or ROF (A-A-A-A...) mode
 
 #define VEL_MODE 0b00000001
-
+#define IMP_MODE 0b00000010
+ 
 // In vel mode, caught A already. Waiting for B.
 // This is where timeouts can occur.
 #define CAUGHT_A 0b00000100
@@ -26,10 +33,15 @@
 
 
 
-const float DeltaDCM = 100.0;
+const float DeltaDCM = 40.0;
+const float DeltaDFt = 1.31234;
+
+///////////////////////////////////////////////////////////
+// FIX THESE PIN NUMBERS
+///////////////////////////////////////////////////////////
 
 // initialize the library with the numbers of the interface pins
-LiquidCrystal lcd(12, 11, 5, 4, 6, 8);
+LiquidCrystal lcd(12, 10, 6, 5, 4, 7);
 
 unsigned long t1 = 0;
 unsigned long t2 = 0;
@@ -78,7 +90,10 @@ void setup() {
   // Setup pins
   pinMode (TriggerPINA, INPUT);
   pinMode (TriggerPINB, INPUT);
+  
   pinMode (MODE_PIN, INPUT);
+
+  pinMode (10, OUTPUT);
 
 
   // Leave triggers floating.
@@ -99,7 +114,11 @@ void MuzzleVelocityLoop (){
     t2 = 0;
 
     lcd.setCursor(0, 0);
-    lcd.print("M/S mode");
+    if (state & IMP_MODE) {
+      lcd.print("fps mode");
+    } else {
+      lcd.print("M/S mode");
+    }
 
     
     if (state & TIMEOUT_) {
@@ -132,14 +151,21 @@ void MuzzleVelocityLoop (){
   // There is a result to be made!
   if (state & HAS_DATA) {
     lcd.clear();
-    lcd.setCursor(0, 0);
-    lcd.print("Velocity in M/S:");
-    lcd.setCursor(0, 1);
     digitalWrite (13, LOW);
-    lcd.setCursor(0, 1);
     // MATH!
-    lcd.print((DeltaDCM/100.0)/((t2-t1)/1000000.0));
-    Serial.println((DeltaDCM/100.0)/((t2-t1)/1000000.0), DEC);
+    if (state & IMP_MODE) {
+      lcd.setCursor(0, 0);
+      lcd.print("Velocity in fps:");
+      lcd.setCursor(0, 1);
+      lcd.print((DeltaDFt)/((t2-t1)/1000000.0));
+      Serial.println((DeltaDFt)/((t2-t1)/1000000.0), DEC);
+    } else {
+      lcd.setCursor(0, 0);
+      lcd.print("Velocity in M/S:");
+      lcd.setCursor(0, 1);
+      lcd.print((DeltaDCM/100.0)/((t2-t1)/1000000.0));
+      Serial.println((DeltaDCM/100.0)/((t2-t1)/1000000.0), DEC);
+    }
     //Serial.println(" M/S");
   }
   delay(100);
@@ -149,7 +175,7 @@ void RateOfFireLoop() {
   if (state & STARTED_) {
     lcd.clear();
     lcd.setCursor(0, 0);
-    lcd.print("RPM mode.");
+    lcd.print("ROF mode.");
     lcd.setCursor(0, 1);
     // Number / DeltaT
     Serial.println((60*count) / ((t2-t1)/1000000.0), DEC);
@@ -181,9 +207,20 @@ void loop() {
   if (state & VEL_MODE) MuzzleVelocityLoop();
   else RateOfFireLoop();
 
-  if (digitalRead(MODE_PIN) != (state & VEL_MODE)) {
+  //digitalWrite (11, digitalRead(2));
+  
+  if (digitalRead(MODE_PIN) != (state & VEL_MODE)) { 
     state = 0;
     state += digitalRead(MODE_PIN)*VEL_MODE;
+    lcd.clear();
+  }
+
+  // Read unit selector pin.
+
+  // If current switch state doesn't match the state defined therein:
+  if (digitalRead(UNITS_PIN) != (state & IMP_MODE)) {
+    state = state & (~IMP_MODE);
+    if (digitalRead(UNITS_PIN)) state |= IMP_MODE;
     lcd.clear();
   }
 }
