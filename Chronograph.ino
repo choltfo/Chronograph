@@ -5,8 +5,8 @@
 // https://www.arduino.cc/en/Tutorial/LiquidCrystalDisplay
 ///////////////////////////////////////////////////////////
 
-#define TriggerPINA 2
-#define TriggerPINB 3
+#define TriggerPINA 3
+#define TriggerPINB 2
 
 #define MODE_PIN 8
 #define UNITS_PIN 9
