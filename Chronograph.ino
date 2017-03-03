@@ -217,7 +217,7 @@ void loop() {
 
   //digitalWrite (11, digitalRead(2));
   
-  /*if (digitalRead(MODE_PIN) != (state & VEL_MODE)) { 
+  if (digitalRead(MODE_PIN) != (state & VEL_MODE)) { 
     state = 0;
     state += digitalRead(MODE_PIN)*VEL_MODE;
     lcd.clear();
@@ -226,7 +226,7 @@ void loop() {
   // Read unit selector pin.
 
   // If current switch state doesn't match the state defined therein:
-  if (digitalRead(UNITS_PIN) != ((state & IMP_MODE) != 0)) {
+  /*if (digitalRead(UNITS_PIN) != ((state & IMP_MODE) != 0)) {
     state = state & (~IMP_MODE);
     //if (digitalRead(UNITS_PIN)) state |= IMP_MODE;
     lcd.clear();
