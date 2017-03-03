@@ -2,7 +2,6 @@
 
 ///////////////////////////////////////////////////////////
 // FIX THESE PIN NUMBERS
-// https://www.arduino.cc/en/Tutorial/LiquidCrystalDisplay
 ///////////////////////////////////////////////////////////
 
 #define TriggerPINA 3
@@ -31,13 +30,17 @@
 // First pass has occured, start timing. When timeout occurs, clear flags back to state = ROF_MODE
 #define STARTED_ 0b00001000
 
+#define FULL_ 0b11111111
+#define NONE_ 0b00000000
 
 
-const float DeltaDCM = 40.0;
-const float DeltaDFt = 1.31234;
+
+const float DeltaDCM = 10.0;
+const float DeltaDFt = 0.328084;
 
 ///////////////////////////////////////////////////////////
-// FIX THESE PIN NUMBERS
+// Pin number assignemnts for LCD
+// https://www.arduino.cc/en/Tutorial/LiquidCrystalDisplay
 ///////////////////////////////////////////////////////////
 
 // initialize the library with the numbers of the interface pins
@@ -55,10 +58,11 @@ int state = VEL_MODE; //VEL_MODE;
 void triggerPinA (){
       digitalWrite (13, HIGH);
       if (state & VEL_MODE) {
+        // Velocity mode
         t1 = micros();
         state |= CAUGHT_A;  // We have, self evidently, tripped sensor A.
         state &= ~TIMEOUT_; // Reset the timeout flag, since we want to leave the screen.
-        state &= ~HAS_DATA; // We can't have data from this triggering yet, there's not been a second event.
+        state &= ~HAS_DATA; // We can't have data from this triggering yet - there's not been a second event.
       } else {
         // ROF Mode.
         if (state & STARTED_) {
@@ -107,14 +111,14 @@ void setup() {
 }
 
 void MuzzleVelocityLoop (){
-   // In velocity mode prior to catching A, so show a blank screen.
+   // In velocity mode prior to catching A.
   if (!(state & HAS_DATA) && !(state & CAUGHT_A)) {
     
     t1 = 0;
     t2 = 0;
 
     lcd.setCursor(0, 0);
-    if (state & IMP_MODE) {
+    if (digitalRead(UNITS_PIN)) {
       lcd.print("fps mode");
     } else {
       lcd.print("M/S mode");
@@ -132,6 +136,7 @@ void MuzzleVelocityLoop (){
   }
 
   // We haven't timed out yet. This shouldn't stay around for long.
+  // If it does, then the shot missed.
   if (!(state & HAS_DATA) && (state & CAUGHT_A)) {
     lcd.clear();
     lcd.setCursor(0, 0);
@@ -153,13 +158,16 @@ void MuzzleVelocityLoop (){
     lcd.clear();
     digitalWrite (13, LOW);
     // MATH!
-    if (state & IMP_MODE) {
+    //if (state & IMP_MODE) {
+    if (digitalRead(UNITS_PIN)) {
+      lcd.clear();
       lcd.setCursor(0, 0);
       lcd.print("Velocity in fps:");
       lcd.setCursor(0, 1);
       lcd.print((DeltaDFt)/((t2-t1)/1000000.0));
       Serial.println((DeltaDFt)/((t2-t1)/1000000.0), DEC);
     } else {
+      lcd.clear();
       lcd.setCursor(0, 0);
       lcd.print("Velocity in M/S:");
       lcd.setCursor(0, 1);
@@ -209,7 +217,7 @@ void loop() {
 
   //digitalWrite (11, digitalRead(2));
   
-  if (digitalRead(MODE_PIN) != (state & VEL_MODE)) { 
+  /*if (digitalRead(MODE_PIN) != (state & VEL_MODE)) { 
     state = 0;
     state += digitalRead(MODE_PIN)*VEL_MODE;
     lcd.clear();
@@ -222,7 +230,7 @@ void loop() {
     state = state & (~IMP_MODE);
     //if (digitalRead(UNITS_PIN)) state |= IMP_MODE;
     lcd.clear();
-  }
+  }*/
 }
 
 
